@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "compilador.h"
+#include "stack.h"
 
 int num_vars;
 
@@ -16,7 +17,7 @@ int num_vars;
 
 %token PROGRAM ABRE_PARENTESES FECHA_PARENTESES
 %token VIRGULA PONTO_E_VIRGULA DOIS_PONTOS PONTO
-%token T_BEGIN T_END VAR IDENT ATRIBUICAO
+%token T_BEGIN T_END VAR IDENT ATRIBUICAO LABEL TYPE ARRAY OF PROCEDURE FUNCTION GOTO IF THEN ELSE WHILE DO DIV AND NOT MAIS MENOS VEZES DIVIDIDO IGUAL MENOR MAIOR
 
 %%
 
@@ -56,7 +57,11 @@ declara_vars: declara_vars declara_var
 declara_var : { }
               lista_id_var DOIS_PONTOS
               tipo
-              { /* AMEM */
+              { 
+                char str[10];
+                sprintf(str, "AMEM %d", num_vars);
+                geraCodigo (NULL, str);
+                num_vars=0;
               }
               PONTO_E_VIRGULA
 ;
@@ -65,8 +70,8 @@ tipo        : IDENT
 ;
 
 lista_id_var: lista_id_var VIRGULA IDENT
-              { /* insere �ltima vars na tabela de s�mbolos */ }
-            | IDENT { /* insere vars na tabela de s�mbolos */}
+              { num_vars++; }
+            | IDENT { num_vars++; }
 ;
 
 lista_idents: lista_idents VIRGULA IDENT
@@ -76,15 +81,24 @@ lista_idents: lista_idents VIRGULA IDENT
 
 comando_composto: T_BEGIN comandos T_END
 
-comandos:
+comandos: comando_sem_rotulo
 ;
 
+comando_sem_rotulo: atribuicao
+;
+
+atribuicao: IDENT ATRIBUICAO expressao PONTO_E_VIRGULA
+;
+
+expressao: termo
+;
 
 %%
 
 int main (int argc, char** argv) {
    FILE* fp;
    extern FILE* yyin;
+   Stack *p = stackCreate(1024);
 
    if (argc<2 || argc>2) {
          printf("usage compilador <arq>a %d\n", argc);
@@ -105,5 +119,7 @@ int main (int argc, char** argv) {
    yyin=fp;
    yyparse();
 
+    stackPrint(p);
+    stackFree(p);
    return 0;
 }
